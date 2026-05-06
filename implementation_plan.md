@@ -598,7 +598,7 @@ server {
 
 ---
 
-## Step 9 — Execution Order (What We Build First)
+## Step 9 — Execution Order (What We Build First) (Almost DONE)
 
 | Phase | What | Est. Time |
 |-------|------|-----------|

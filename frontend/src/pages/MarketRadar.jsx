@@ -6,6 +6,22 @@ import { useAuth } from '../context/AuthContext'
 
 const POLL_INTERVAL = 5000
 
+// ── Star display (read-only, supports halves visually via opacity) ──
+function MiniStars({ avg }) {
+  if (avg === null || avg === undefined) return null
+  return (
+    <span style={{ display: 'inline-flex', gap: 2, alignItems: 'center' }}>
+      {[1, 2, 3, 4, 5].map(s => (
+        <span key={s} style={{
+          fontSize: 13,
+          color: s <= Math.round(avg) ? '#f5c518' : 'var(--border)',
+          transition: 'color 0.15s',
+        }}>★</span>
+      ))}
+    </span>
+  )
+}
+
 // ── User Profile Popup ───────────────────────────────────────────
 function UserProfilePopup({ users, onClose, side }) {
   if (!users) return null
@@ -45,9 +61,19 @@ function UserProfilePopup({ users, onClose, side }) {
                   <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                     Qty: <strong>{u.quantity}</strong>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--accent-light)', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: 'var(--accent-light)', marginTop: 4 }}>
                     ★ Rep {u.reputation}
                   </div>
+                  {u.avg_rating !== null && u.avg_rating !== undefined ? (
+                    <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                      <MiniStars avg={u.avg_rating} />
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        {u.avg_rating.toFixed(1)} ({u.review_count})
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>No reviews yet</div>
+                  )}
                 </div>
               </div>
             ))}
@@ -129,10 +155,19 @@ export default function MarketRadar() {
   const [order, setOrder]   = useState({ order_type: 'BUY', price: '', quantity: 1 })
   const [placing, setPlacing] = useState(false)
   const [placeError, setPlaceError] = useState('')
-  const [placeResult, setPlaceResult] = useState(null)
   const [popup, setPopup]   = useState(null)   // { users: [], side: 'BUY'|'SELL' }
   const [popupLoading, setPopupLoading] = useState(false)
   const pollRef = useRef(null)
+
+  // Persist placeResult in sessionStorage so it survives item switches
+  const [placeResult, setPlaceResultState] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('tf_last_order') || 'null') } catch { return null }
+  })
+  const setPlaceResult = (val) => {
+    setPlaceResultState(val)
+    if (val) sessionStorage.setItem('tf_last_order', JSON.stringify(val))
+    else sessionStorage.removeItem('tf_last_order')
+  }
 
   useEffect(() => {
     api.get('/market/items').then(r => {
@@ -301,6 +336,7 @@ export default function MarketRadar() {
               <div key={t.id} style={{
                 marginTop: 16, textAlign: 'center', padding: 24,
                 background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--green)',
               }}>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
                   Your Release Code for Trade #{t.id} — share with seller <strong>ONLY after</strong> you have received the item and paid:
@@ -309,6 +345,10 @@ export default function MarketRadar() {
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12 }}>
                   Also visible under My Trades → Pending
                 </p>
+                <button className="btn btn-ghost btn-sm" style={{ marginTop: 16 }}
+                  onClick={() => setPlaceResult(null)}>
+                  Dismiss
+                </button>
               </div>
             ))}
           </div>

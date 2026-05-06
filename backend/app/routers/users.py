@@ -141,15 +141,33 @@ async def resend_verification(
     return {"message": "Verification email resent. Please check your inbox."}
 
 
-@router.get("/profile/{user_id}", response_model=UserPublic)
+@router.get("/profile/{user_id}", response_model=dict)
 async def get_public_profile(user_id: int, db: AsyncSession = Depends(get_db)):
     """
-    Public profile endpoint — returns name, batch, degree, reputation only.
-    Used by Market Radar when clicking a bid/ask price level to see who placed it.
-    Deliberately excludes email and any private data.
+    Public profile endpoint — returns name, batch, degree, reputation,
+    and average rating from reviews. Deliberately excludes email.
     """
+    from sqlalchemy import text
     result = await db.execute(select(User).where(User.id == user_id, User.is_verified == True))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
-    return user
+
+    # Fetch avg rating and review count
+    rating_result = await db.execute(
+        text("SELECT ROUND(AVG(rating)::numeric, 1) AS avg_rating, COUNT(*) AS review_count FROM reviews WHERE reviewee_id = :uid"),
+        {"uid": user_id},
+    )
+    rating_row = rating_result.fetchone()
+    avg_rating    = float(rating_row.avg_rating)    if rating_row.avg_rating    else None
+    review_count  = int(rating_row.review_count)    if rating_row.review_count  else 0
+
+    return {
+        "id":           user.id,
+        "name":         user.name,
+        "batch":        user.batch,
+        "degree":       user.degree,
+        "reputation":   user.reputation,
+        "avg_rating":   avg_rating,
+        "review_count": review_count,
+    }

@@ -114,3 +114,25 @@ COMMENT ON COLUMN trades.status       IS 'PENDING = matched, awaiting physical m
 CREATE INDEX IF NOT EXISTS idx_trades_buy_order  ON trades (buy_order_id);
 CREATE INDEX IF NOT EXISTS idx_trades_sell_order ON trades (sell_order_id);
 CREATE INDEX IF NOT EXISTS idx_trades_status     ON trades (status) WHERE status = 'PENDING';
+
+-- =============================================================
+-- TABLE: reviews
+-- Post-trade peer reviews. One review per (trade, reviewer).
+-- Both buyer and seller can leave a review about the other party.
+-- =============================================================
+CREATE TABLE IF NOT EXISTS reviews (
+    id              SERIAL          PRIMARY KEY,
+    trade_id        INTEGER         NOT NULL REFERENCES trades(id),
+    reviewer_id     INTEGER         NOT NULL REFERENCES users(id),
+    reviewee_id     INTEGER         NOT NULL REFERENCES users(id),
+    rating          SMALLINT        NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment         TEXT,
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_review_per_trade_reviewer UNIQUE (trade_id, reviewer_id)
+);
+
+COMMENT ON TABLE  reviews              IS 'Post-trade peer reviews. One per reviewer per trade. Rating 1–5.';
+COMMENT ON COLUMN reviews.reviewer_id  IS 'User who wrote the review.';
+COMMENT ON COLUMN reviews.reviewee_id  IS 'User being reviewed (the counterparty).';
+
+CREATE INDEX IF NOT EXISTS idx_reviews_reviewee ON reviews (reviewee_id);

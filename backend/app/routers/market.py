@@ -132,9 +132,12 @@ async def get_orders_at_price(
     result = await db.execute(
         text("""
             SELECT DISTINCT u.id, u.name, u.batch, u.degree, u.reputation,
-                   o.quantity, o.created_at
+                   o.quantity, o.created_at,
+                   ROUND(AVG(r.rating) OVER (PARTITION BY u.id), 1) AS avg_rating,
+                   COUNT(r.id)         OVER (PARTITION BY u.id)      AS review_count
             FROM orders o
             JOIN users u ON u.id = o.user_id
+            LEFT JOIN reviews r ON r.reviewee_id = u.id
             WHERE o.item_id   = :iid
               AND o.order_type = :otype
               AND o.price      = :price
@@ -153,6 +156,8 @@ async def get_orders_at_price(
             "degree": r.degree,
             "reputation": r.reputation,
             "quantity": r.quantity,
+            "avg_rating": float(r.avg_rating) if r.avg_rating is not None else None,
+            "review_count": r.review_count,
         }
         for r in rows
     ]

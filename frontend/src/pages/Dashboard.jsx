@@ -17,6 +17,7 @@ export default function Dashboard() {
   const { user, refreshUser } = useAuth()
   const [orders, setOrders]   = useState([])
   const [trades, setTrades]   = useState([])
+  const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -24,11 +25,18 @@ export default function Dashboard() {
       api.get('/orders'),
       api.get('/trades/pending'),
       refreshUser(),
-    ]).then(([ordRes, tradeRes]) => {
+    ]).then(async ([ordRes, tradeRes]) => {
       setOrders(ordRes.data)
       setTrades(tradeRes.data)
+      // Fetch own profile for avg_rating (user may not be loaded yet, retry after refreshUser)
     }).finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (user?.id) {
+      api.get(`/users/profile/${user.id}`).then(r => setProfile(r.data)).catch(() => {})
+    }
+  }, [user?.id])
 
   const activeOrders    = orders.filter(o => o.status === 'ACTIVE').length
   const pendingTrades   = trades.length
@@ -45,9 +53,24 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="grid-4" style={{ marginBottom: 32 }}>
         <StatCard label="Reputation" value={user?.reputation ?? 0} sub="Completed trades" color="var(--accent-light)" />
+        <StatCard
+          label="Avg Rating"
+          value={
+            profile?.avg_rating != null
+              ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {[1,2,3,4,5].map(s => (
+                    <span key={s} style={{ fontSize: 20, color: s <= Math.round(profile.avg_rating) ? '#f5c518' : 'var(--border)' }}>★</span>
+                  ))}
+                </span>
+              )
+              : '—'
+          }
+          sub={profile?.avg_rating != null ? `${profile.avg_rating.toFixed(1)} / 5 (${profile.review_count} reviews)` : 'No reviews yet'}
+          color="#f5c518"
+        />
         <StatCard label="Active Orders" value={loading ? '—' : activeOrders} sub="In the book" color="var(--blue)" />
         <StatCard label="Pending Trades" value={loading ? '—' : pendingTrades} sub="Awaiting meetup" color="var(--yellow)" />
-        <StatCard label="Completed" value={loading ? '—' : completedOrders} sub="Filled orders" color="var(--green)" />
       </div>
 
       {/* Quick Actions */}

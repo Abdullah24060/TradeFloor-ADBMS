@@ -1,24 +1,152 @@
 import { useEffect, useState } from 'react'
 import api from '../api/axios'
 
+// ── Animated Star Rating Component ────────────────────────────
+function StarRating({ value, onChange, readOnly = false }) {
+  const [hovered, setHovered] = useState(0)
+  const display = hovered || value
+
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      {[1, 2, 3, 4, 5].map(star => (
+        <span
+          key={star}
+          onClick={() => !readOnly && onChange && onChange(star)}
+          onMouseEnter={() => !readOnly && setHovered(star)}
+          onMouseLeave={() => !readOnly && setHovered(0)}
+          style={{
+            fontSize: readOnly ? 18 : 32,
+            cursor: readOnly ? 'default' : 'pointer',
+            color: star <= display ? '#f5c518' : 'var(--border)',
+            transition: 'color 0.15s ease, transform 0.15s ease',
+            transform: !readOnly && star <= hovered ? 'scale(1.25)' : 'scale(1)',
+            display: 'inline-block',
+            lineHeight: 1,
+            userSelect: 'none',
+          }}
+          title={readOnly ? `${star} star` : `Rate ${star} out of 5`}
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  )
+}
+
+// ── Inline Review Form (shown inside completed trade card) ────
+function ReviewForm({ trade, isBuyer, onReviewed }) {
+  const [rating, setRating]   = useState(0)
+  const [comment, setComment] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState('')
+
+  const counterparty = trade.counterparty_name || (isBuyer ? 'the seller' : 'the buyer')
+
+  const submit = async () => {
+    if (!rating) { setError('Please select a star rating.'); return }
+    setLoading(true); setError('')
+    try {
+      await api.post('/reviews', {
+        trade_id: trade.id,
+        rating,
+        comment: comment.trim() || null,
+      })
+      onReviewed(trade.id)
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to submit review.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={{
+      marginTop: 16, padding: 20,
+      background: 'var(--bg-elevated)',
+      borderRadius: 'var(--radius-md)',
+      borderTop: '1px solid var(--border)',
+      animation: 'fadeUp 0.3s ease',
+    }}>
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14 }}>
+        How was your experience trading with <strong>{counterparty}</strong>?
+      </p>
+
+      <div style={{ marginBottom: 14 }}>
+        <StarRating value={rating} onChange={setRating} />
+        {rating > 0 && (
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 10 }}>
+            {['', 'Terrible', 'Poor', 'Okay', 'Good', 'Excellent'][rating]}
+          </span>
+        )}
+      </div>
+
+      <textarea
+        placeholder="Optional: describe your experience... (max 500 chars)"
+        maxLength={500}
+        value={comment}
+        onChange={e => setComment(e.target.value)}
+        rows={3}
+        style={{
+          width: '100%', resize: 'vertical', padding: '10px 12px',
+          background: 'var(--bg-surface)', border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)',
+          fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box',
+          marginBottom: 12,
+        }}
+      />
+
+      {error && <div className="alert alert-error" style={{ marginBottom: 10, fontSize: 13 }}>{error}</div>}
+
+      <button
+        className="btn btn-primary"
+        onClick={submit}
+        disabled={loading || !rating}
+        style={{ height: 38, fontSize: 13 }}
+      >
+        {loading ? <span className="spinner" /> : 'Submit Review'}
+      </button>
+    </div>
+  )
+}
+
+// ── Already Reviewed Badge ────────────────────────────────────
+function ReviewedBadge() {
+  return (
+    <div style={{
+      marginTop: 16, padding: '12px 16px',
+      background: 'rgba(52,211,153,0.08)',
+      border: '1px solid rgba(52,211,153,0.25)',
+      borderRadius: 'var(--radius-sm)',
+      fontSize: 13, color: 'var(--green)',
+      display: 'flex', alignItems: 'center', gap: 8,
+    }}>
+      ✓ You have reviewed this trade.
+    </div>
+  )
+}
+
+// ── Main MyTrades Page ─────────────────────────────────────────
 export default function MyTrades() {
-  const [tab, setTab] = useState('pending')   // 'pending' | 'history'
+  const [tab, setTab] = useState('pending')
   const [pending, setPending]   = useState([])
   const [history, setHistory]   = useState([])
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState('')
-  const [confirmState, setConfirmState] = useState({})  // { [tradeId]: {code, loading, error, success} }
+  const [confirmState, setConfirmState] = useState({})
+  const [reviewedIds, setReviewedIds]   = useState(new Set())  // trade IDs already reviewed by me
 
   const load = async () => {
     setLoading(true); setError('')
     try {
-      const [pRes, hRes] = await Promise.all([
+      const [pRes, hRes, rRes] = await Promise.all([
         api.get('/trades/pending'),
         api.get('/trades/history'),
+        api.get('/reviews/my-submitted'),
       ])
       setPending(pRes.data)
       setHistory(hRes.data)
-    } catch (e) {
+      setReviewedIds(new Set(rRes.data.map(r => r.trade_id)))
+    } catch {
       setError('Failed to load trades.')
     } finally {
       setLoading(false)
@@ -44,6 +172,10 @@ export default function MyTrades() {
         error: err.response?.data?.detail || 'Confirmation failed.',
       }}))
     }
+  }
+
+  const markReviewed = (tradeId) => {
+    setReviewedIds(prev => new Set([...prev, tradeId]))
   }
 
   const trades = tab === 'pending' ? pending : history
@@ -93,6 +225,7 @@ export default function MyTrades() {
             const isPending = trade.status === 'PENDING'
             const isBuyer   = !!trade.release_code
             const cs = confirmState[trade.id] || {}
+            const alreadyReviewed = reviewedIds.has(trade.id)
 
             return (
               <div key={trade.id} className="card fade-up" style={{
@@ -163,7 +296,6 @@ export default function MyTrades() {
                 {isPending && (
                   <div>
                     {isBuyer ? (
-                      /* BUYER: show release code */
                       <div style={{
                         background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', padding: 20,
                         borderTop: '1px solid var(--border)',
@@ -183,7 +315,6 @@ export default function MyTrades() {
                         </div>
                       </div>
                     ) : (
-                      /* SELLER: enter code form */
                       <div style={{
                         background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', padding: 20,
                         borderTop: '1px solid var(--border)',
@@ -224,6 +355,17 @@ export default function MyTrades() {
                       </div>
                     )}
                   </div>
+                )}
+
+                {/* ── Review section (only for COMPLETED trades) ── */}
+                {!isPending && (
+                  alreadyReviewed
+                    ? <ReviewedBadge />
+                    : <ReviewForm
+                        trade={trade}
+                        isBuyer={isBuyer}
+                        onReviewed={markReviewed}
+                      />
                 )}
               </div>
             )
