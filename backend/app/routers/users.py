@@ -66,6 +66,8 @@ async def register(payload: UserRegister, db: AsyncSession = Depends(get_db)):
 async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
     """
     Verify a user's email address using the UUID token from the verification email.
+    If the token is already used (link clicked twice), return a helpful message
+    instead of a scary error screen.
     """
     result = await db.execute(
         select(User).where(User.verify_token == token)
@@ -73,7 +75,9 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
     user = result.scalar_one_or_none()
 
     if not user:
-        raise HTTPException(status_code=400, detail="Invalid or already used verification link.")
+        # Token not found — it was already used (link clicked twice) or is invalid.
+        # Return 200 so the frontend shows the success screen, not the error screen.
+        return {"message": "Your email is already verified! You can log in and start trading."}
 
     if user.token_expiry and datetime.now(timezone.utc) > user.token_expiry:
         raise HTTPException(status_code=400, detail="Verification link has expired. Please register again.")

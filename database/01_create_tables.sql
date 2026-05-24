@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- (Run from postgres database first, then reconnect)
 -- If running standalone: uncomment below
 -- CREATE DATABASE tradefloor;
--- \c tradefloor
+-- \c tradefloor.
 
 -- ── Create application role ───────────────────────────────────
 DO $$

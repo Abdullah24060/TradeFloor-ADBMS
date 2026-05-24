@@ -12,7 +12,7 @@ async def send_email(to_email: str, subject: str, html_body: str) -> None:
     """
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = f"TradeFloor <{settings.smtp_from}>"
+    msg["From"] = f"{settings.app_name} <{settings.smtp_from}>"
     msg["To"] = to_email
     msg.attach(MIMEText(html_body, "html"))
 
@@ -34,12 +34,12 @@ async def send_verification_email(to_email: str, name: str, token: str) -> None:
     <body style="font-family: 'Inter', Arial, sans-serif; background:#0f0f0f; color:#e0e0e0; padding:40px;">
       <div style="max-width:520px;margin:auto;background:#1a1a2e;border-radius:16px;padding:40px;
                   border:1px solid #2a2a4a;">
-        <h1 style="color:#7c6af7;margin-bottom:8px;">TradeFloor</h1>
+        <h1 style="color:#7c6af7;margin-bottom:8px;">{settings.app_name}</h1>
         <p style="color:#888;margin-top:0;font-size:13px;">Campus Micro-Economy Exchange</p>
         <hr style="border:none;border-top:1px solid #2a2a4a;margin:24px 0;">
         <h2 style="color:#e0e0e0;">Welcome, {name}!</h2>
         <p style="color:#aaa;line-height:1.6;">
-          You're one step away from joining TradeFloor — the campus exchange for textbooks,
+          You're one step away from joining {settings.app_name} — the campus exchange for textbooks,
           tickets, electronics, and services.
         </p>
         <p style="color:#aaa;line-height:1.6;">
@@ -61,7 +61,7 @@ async def send_verification_email(to_email: str, name: str, token: str) -> None:
     </body>
     </html>
     """
-    await send_email(to_email, "Verify your TradeFloor account", html)
+    await send_email(to_email, f"Verify your {settings.app_name} account", html)
 
 
 async def send_trade_notification(
@@ -112,14 +112,14 @@ async def send_trade_notification(
     <body style="font-family:'Inter',Arial,sans-serif;background:#0f0f0f;color:#e0e0e0;padding:40px;">
       <div style="max-width:520px;margin:auto;background:#1a1a2e;border-radius:16px;padding:40px;
                   border:1px solid #2a2a4a;">
-        <h1 style="color:#7c6af7;margin-bottom:8px;">TradeFloor</h1>
+        <h1 style="color:#7c6af7;margin-bottom:8px;">{settings.app_name}</h1>
         <p style="color:#888;margin-top:0;font-size:13px;">Trade #{trade_id}</p>
         <hr style="border:none;border-top:1px solid #2a2a4a;margin:24px 0;">
         <h2 style="color:#e0e0e0;">Hi {name}!</h2>
         {body_content}
         <hr style="border:none;border-top:1px solid #2a2a4a;margin:24px 0;">
         <p style="color:#555;font-size:12px;">
-          Login to your TradeFloor account to view full trade details.
+          Login to your {settings.app_name} account to view full trade details.
         </p>
       </div>
     </body>

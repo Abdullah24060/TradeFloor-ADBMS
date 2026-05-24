@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="TradeFloor API",
+    title=f"{settings.app_name} API",
     description=(
         "High-concurrency campus micro-economy matching engine. "
         "Powered by PostgreSQL SERIALIZABLE transactions, "
@@ -25,15 +25,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── CORS ─────────────────────────────────────────────────────
-# Allow the Vite dev server + production frontend
+# Build CORS origin list from env — always include localhost variants for dev
+_origins = {settings.frontend_url, "http://localhost:5173", "http://127.0.0.1:5173"}
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.frontend_url,
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=list(_origins),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
