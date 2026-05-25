@@ -444,3 +444,110 @@ tbody tr { transition: background 0.15s; }
 
 /* Accent dim for chips */
 :root { --accent-dim: rgba(124,106,247,0.15); }
+
+/* ============================================================
+   MOBILE RESPONSIVE — Breakpoint ≤ 640px
+   Only overrides; desktop styles are unchanged.
+   ============================================================ */
+
+/* Smaller horizontal page padding on mobile */
+@media (max-width: 640px) {
+  .page-wrap {
+    padding: 0 14px;
+  }
+
+  /* Page headers */
+  .page-header {
+    padding: 20px 0 16px;
+    margin-bottom: 20px;
+  }
+  .page-header h1 { font-size: 22px; }
+
+  /* Cards */
+  .card       { padding: 16px; }
+  .card-glass { padding: 20px; }
+
+  /* Stat cards — smaller value text on mobile */
+  .stat-card .stat-value { font-size: 24px; }
+
+  /* Release code box — prevent overflow */
+  .release-code-box {
+    font-size: 20px;
+    letter-spacing: 6px;
+    padding: 8px 12px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Grids: all single-column on mobile */
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Tables: allow horizontal scroll */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Buttons in a row: allow wrapping */
+  .flex.gap-3,
+  .flex.gap-4 {
+    flex-wrap: wrap;
+  }
+
+  /* Alert boxes — smaller text */
+  .alert { font-size: 12px; }
+
+  /* Tabs — smaller padding so they fit */
+  .tab { padding: 8px 12px; font-size: 13px; }
+}
+
+/* ── Mobile Navbar ─────────────────────────────────────────── */
+
+/* Hide desktop nav links on small screens */
+@media (max-width: 680px) {
+  .nav-links-desktop { display: none !important; }
+  .nav-mobile-menu {
+    position: fixed;
+    top: 60px;
+    left: 0; right: 0;
+    background: rgba(8,8,18,0.97);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 12px 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 99;
+    animation: fadeUp 0.2s ease both;
+  }
+  .nav-mobile-menu a {
+    display: block;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: var(--trans);
+  }
+  .nav-mobile-menu a:hover,
+  .nav-mobile-menu a.active-link {
+    background: rgba(124,106,247,0.12);
+    color: var(--accent-light);
+  }
+  .nav-mobile-menu .nav-mobile-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 8px 0;
+  }
+}
+
+/* On large screens, never show the hamburger or mobile menu */
+@media (min-width: 681px) {
+  .nav-hamburger  { display: none !important; }
+  .nav-mobile-menu { display: none !important; }
+}

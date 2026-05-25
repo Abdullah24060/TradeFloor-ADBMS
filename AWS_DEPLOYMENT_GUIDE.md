@@ -102,7 +102,7 @@ Move-Item "$env:USERPROFILE\Downloads\tradefloor-key.pem" "$env:USERPROFILE\.ssh
 Replace `YOUR_ELASTIC_IP` with the IP you noted down:
 
 ```powershell
-ssh -i "$env:USERPROFILE\.ssh\tradefloor-key.pem" ubuntu@YOUR_ELASTIC_IP
+ssh -i "C:\Users\abdul\tradefloor-key.pem" ubuntu@13.51.112.183
 ```
 
 If it asks **"Are you sure you want to continue connecting?"** → type `yes` and press Enter.
